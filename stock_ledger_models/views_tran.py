@@ -670,3 +670,64 @@ def trn_data_rev_1_table(request):
              connection.close()
 
 
+
+#Fetching the data from TRN_TYPE_DTL based on the input parameters:
+@csrf_exempt            
+def trn_type_dtl_table(request):
+    if request.method == 'POST':
+        try:
+            json_object = json.loads(request.body)
+            json_object=json_object[0]
+            keys=[]
+            for key1 in json_object:
+                if isinstance(json_object[key1], list):
+                    if (len(json_object[key1]))==0:
+                        json_object[key1]="NULL"
+            for key in json_object:
+                if json_object[key]=="NULL" or json_object[key]=="":
+                    json_object[key]=None
+                    keys.append(key)
+            for k in keys:
+                json_object.pop(k)
+            
+            #checking the inputs are mutliple or not
+            count=0
+            for keys_2 in json_object:
+                if isinstance(json_object[keys_2], list):
+                    count=1
+            if count==1:
+                for keys1 in json_object:
+                    if isinstance(json_object[keys1], list):
+                        if len(json_object[keys1])>1:
+                            json_object[keys1]=str(tuple(json_object[keys1]))
+                    else:
+                        json_object[keys1]=("('"+str(json_object[keys1])+"')")
+                query="SELECT TTD.* FROM trn_type_dtl TTD WHERE {}".format(' '.join('TTD.{} IN ({}) AND'.format(k,str(json_object[k])[1:-1]) for k in json_object))
+            else:
+                query="SELECT TTD.* FROM trn_type_dtl TTD WHERE {}".format(' '.join('TTD.{} LIKE "%{}%" AND'.format(k,json_object[k]) for k in json_object))
+            if len(json_object)==0:
+                query=query[:-6]+';'
+            else:
+                query=query[:-4]+';'
+            results55=pd.read_sql(query,connection)   
+            res_list=[]
+            rec={}
+            results55 =  results55.replace(np.NaN, None, regex=True)
+            for val2 in results55.values:
+                count=0
+                for col4 in results55.columns:
+                    rec[col4]=val2[count]
+                    count=count+1
+                res_list.append(rec.copy())
+            if len(res_list)==0:
+                return JsonResponse({"status": 500, "message": "NO DATA FOUND"})
+            else:
+                return JsonResponse(res_list, content_type="application/json",safe=False)
+        except Exception as error:
+            return JsonResponse({"status": 500, "message": str(error)})
+        except ValueError:
+            return JsonResponse({"status": 500, "message": "error"})
+        finally:
+             connection.close()
+
+
