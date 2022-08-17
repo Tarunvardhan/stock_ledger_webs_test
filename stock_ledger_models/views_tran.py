@@ -274,13 +274,13 @@ def trn_data_rev_table(request):
                     for p in remove:
                         json_object.pop(p)
                 json_object["TRAN_SEQ_NO"]=TRANS_NO
-                list2.append(json_object)  
+                list2.append(json_object)
+            ARCHIEVE_DATETIME=l_dict["ARCHIEVE_DATETIME"]
             for json_object in list2:
                 #Storing the value of TRAN_SEQ_NO column
                 TRANS_NO=json_object.get("TRAN_SEQ_NO", None)
                 json_object.pop("TRAN_SEQ_NO")
                 R_keys11=[]
-                ARCHIEVE_DATETIME=l_dict["ARCHIEVE_DATETIME"]
                 #fetching columns names
                 mycursor.execute("desc trn_data_rev")
                 d_type=mycursor.fetchall()
