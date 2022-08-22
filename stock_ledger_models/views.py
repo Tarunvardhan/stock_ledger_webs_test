@@ -227,7 +227,7 @@ def GL_ACCOUNT_update(request):
                     mycursor.execute(u_query)
                     if mycursor.rowcount >0:
                         u_count=u_count+1
-            return JsonResponse({"status": 200,"message": f"Records updated: {u_count} "})
+            return JsonResponse({"status": 200, "message": f"Records updated: {u_count}"})
         except Exception as error:
             return JsonResponse({"status": 500, "message": str(error)})
         finally:
@@ -249,7 +249,7 @@ def currency_gl(request):
                     count=count+1
                 res_list.append(rec)
             if len(res_list)==0:
-                return JsonResponse({"Error ":"No Data Found"})
+                return JsonResponse({"status": 500,"message":"No Data Found"})
             else:
                 return JsonResponse(res_list, content_type="application/json",safe=False)
            

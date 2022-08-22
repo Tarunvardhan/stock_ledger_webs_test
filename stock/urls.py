@@ -19,7 +19,7 @@ from stock_ledger_models.views_err import err_trn,del_err_trn_data,err_trn_data_
 from stock_ledger_models.views_daily import count_pndg_dly_rollup,daily_sku_table,daily_rollup_table,daily_rec_table
 from stock_ledger_models.views_stage import count_stg_trn_data,stg_trn,retrieve_stg,retrieve_err_stg,stg_fin
 from stock_ledger_models.views_global import cancel_transaction,system_conf,location_valid,currency_valid,item_location_valid,get_cost_item_location,cost_update_stg,lov_item_dtl,system_config_table,fetch_item_location
-from stock_ledger_models.views_tran import count_trn_data,trn_data_table,trn_data_history_table,trn_data_rev_table,trn_data_rev_1_table
+from stock_ledger_models.views_tran import count_trn_data,trn_data_table,trn_data_history_table,trn_data_rev_table,trn_data_rev_1_table,trn_type_dtl_table
 from stock_ledger_models.views import sample,GL_ACCOUNT_table,GL_ACCOUNT_update,GL_ACCOUNT_INSERT,item_valid,currency_gl
 
 urlpatterns = [
@@ -57,5 +57,6 @@ urlpatterns = [
     path('item_validation/',item_valid),
     path('currency_gl/',currency_gl),
     path('Retrieve_stg_fin/',stg_fin),
+    path('trn_type_dtl/',trn_type_dtl_table),
     path('test/',sample)
 ]
