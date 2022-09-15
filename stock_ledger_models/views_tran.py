@@ -1,4 +1,5 @@
 import json
+from pickle import FALSE
 import pandas as pd
 from django.db import IntegrityError
 #from .models import LOCATION, STG_TRN_DATA,TRN_DATA,PNDG_DLY_ROLLUP,STG_TRN_DATA_DEL_RECORDS,SYSTEM_CONFIG,ERR_TRN_DATA,DAILY_SKU,DAILY_ROLLUP,TRN_DATA_HISTORY,TRN_DATA_REV,CURRENCY,ITEM_LOCATION,ITEM_DTL,HIER1,HIER2,HIER3
@@ -7,6 +8,8 @@ from datetime import datetime,date
 from django.views.decorators.csrf import csrf_exempt
 import time
 import decimal
+import os
+from datetime import datetime, timedelta,date
 from decimal import Decimal
 from decimal import *
 import numpy as np
@@ -55,11 +58,15 @@ def trn_data_table(request):
             keys=[]
             mycursor=connection.cursor()
             for key1 in json_object:
+                if key1=="TRN_NAME":
+                    TRN_NAME=json_object.get("TRN_NAME")
+                else:
+                    TRN_NAME=[]
                 if isinstance(json_object[key1], list):
                     if (len(json_object[key1]))==0:
                         json_object[key1]="NULL"
             for key in json_object:
-                if json_object[key]=="NULL" or json_object[key]=="":
+                if json_object[key]=="NULL" or json_object[key]=="" or key=="TRN_NAME":
                     json_object[key]=None
                     keys.append(key)
             for k in keys:
@@ -94,11 +101,14 @@ def trn_data_table(request):
                 query=query[:-4]+';'
                 results55=pd.read_sql(query,connection)
             else:
-                query=query[:-4]+';'
+                if len(TRN_NAME)>0:
+                    query=query[:-4]+' AND TTD.TRN_NAME IN ('+str(TRN_NAME)[1:-1]+');'
+                else:
+                    query=query[:-4]+';'
                 results55=pd.read_sql(query,connection)
             res_list=[]
             rec={}
-            results55 =  results55.replace(np.NaN, None, regex=True)
+            results55 =  results55.replace(np.NaN, "NULL", regex=True)
             for val2 in results55.values:
                 count=0
                 for col4 in results55.columns:
@@ -106,7 +116,7 @@ def trn_data_table(request):
                     count=count+1
                 for col5 in list_type:
                     if col5 in rec:
-                        if rec[col5]!=None:
+                        if rec[col5]!=None or rec[col5]!="NULL":
                             rec[col5]=int(rec[col5])
                 res_list.append(rec.copy())
             if len(res_list)==0:
@@ -131,11 +141,15 @@ def trn_data_history_table(request):
             keys=[]
             mycursor=connection.cursor()
             for key1 in json_object:
+                if key1=="TRN_NAME":
+                    TRN_NAME=json_object.get("TRN_NAME")
+                else:
+                    TRN_NAME=[]
                 if isinstance(json_object[key1], list):
                     if (len(json_object[key1]))==0:
                         json_object[key1]="NULL"
             for key in json_object:
-                if json_object[key]=="NULL" or json_object[key]=="":
+                if json_object[key]=="NULL" or json_object[key]=="" or key=="TRN_NAME":
                     json_object[key]=None
                     keys.append(key)
             for k in keys:
@@ -170,11 +184,14 @@ def trn_data_history_table(request):
                 query=query[:-4]+' ORDER BY cast(TDH.ITEM as unsigned);'
                 results55=pd.read_sql(query,connection)
             else:
-                query=query[:-4]+' ORDER BY cast(TDH.ITEM as unsigned);'
+                if len(TRN_NAME)>0:
+                    query=query[:-4]+' AND TTD.TRN_NAME IN ('+str(TRN_NAME)[1:-1]+') ORDER BY cast(TDH.ITEM as unsigned);'
+                else:
+                    query=query[:-4]+' ORDER BY cast(TDH.ITEM as unsigned);'
                 results55=pd.read_sql(query,connection)
             res_list=[]
             rec={}
-            results55 =  results55.replace(np.NaN, None, regex=True)
+            results55 =  results55.replace(np.NaN, "NULL", regex=True)
             for val2 in results55.values:
                 count=0
                 for col4 in results55.columns:
@@ -182,7 +199,7 @@ def trn_data_history_table(request):
                     count=count+1
                 for col5 in list_type:
                     if col5 in rec:
-                        if rec[col5]!=None:
+                        if rec[col5]!=None  or rec[col5]!="NULL":
                             rec[col5]=int(rec[col5])
                 res_list.append(rec.copy())
             if len(res_list)==0:
@@ -658,26 +675,22 @@ def trn_data_rev_1_table(request):
              connection.close()
 
 
-
 #Fetching the data from TRN_TYPE_DTL based on the input parameters:
 @csrf_exempt            
-def trn_type_dtl_table(request):
+def trn_type_dtl_list(request):
     if request.method == 'POST':
         try:
             json_object = json.loads(request.body)
+            key_list=[]
             json_object=json_object[0]
-            keys=[]
-            for key1 in json_object:
-                if isinstance(json_object[key1], list):
-                    if (len(json_object[key1]))==0:
-                        json_object[key1]="NULL"
             for key in json_object:
-                if json_object[key]=="NULL" or json_object[key]=="":
-                    json_object[key]=None
-                    keys.append(key)
-            for k in keys:
+                if isinstance(json_object[key], list):
+                    if len(json_object[key])==0:
+                        key_list.append(key)
+                if json_object[key]=="" or json_object[key]=="NULL":
+                    key_list.append(key)
+            for k in key_list:
                 json_object.pop(k)
-            
             #checking the inputs are mutliple or not
             count=0
             for keys_2 in json_object:
@@ -690,23 +703,26 @@ def trn_type_dtl_table(request):
                             json_object[keys1]=str(tuple(json_object[keys1]))
                     else:
                         json_object[keys1]=("('"+str(json_object[keys1])+"')")
-                query="SELECT TTD.* FROM trn_type_dtl TTD WHERE {}".format(' '.join('TTD.{} IN ({}) AND'.format(k,str(json_object[k])[1:-1]) for k in json_object))
+                query="SELECT * FROM trn_type_dtl TTD WHERE {}".format(' '.join('TTD.{} IN ({}) AND'.format(k,str(json_object[k])[1:-1]) for k in json_object))
             else:
-                query="SELECT TTD.* FROM trn_type_dtl TTD WHERE {}".format(' '.join('TTD.{} LIKE "%{}%" AND'.format(k,json_object[k]) for k in json_object))
+                query="SELECT * FROM trn_type_dtl TTD WHERE {}".format(' '.join('TTD.{} LIKE "%{}%" AND'.format(k,json_object[k]) for k in json_object))
             if len(json_object)==0:
-                query=query[:-6]+';'
+                query=query[:-6]+' order by TTD.TRN_NAME;'
+                results55=pd.read_sql(query,connection)
             else:
-                query=query[:-4]+';'
-            results55=pd.read_sql(query,connection)   
+                query=query[:-4]+' order by TTD.TRN_NAME;'
+                results55=pd.read_sql(query,connection)
+            results55 = results55.replace(np.NaN,"NULL", regex=True)
             res_list=[]
             rec={}
-            results55 =  results55.replace(np.NaN, None, regex=True)
             for val2 in results55.values:
                 count=0
                 for col4 in results55.columns:
                     rec[col4]=val2[count]
                     count=count+1
                 res_list.append(rec.copy())
+            with open("trn_type.json","w") as f:
+                f.write(json.dumps(res_list))
             if len(res_list)==0:
                 return JsonResponse({"status": 500, "message": "NO DATA FOUND"})
             else:
@@ -715,7 +731,18 @@ def trn_type_dtl_table(request):
             return JsonResponse({"status": 500, "message": str(error)})
         except ValueError:
             return JsonResponse({"status": 500, "message": "error"})
-        finally:
-             connection.close()
 
 
+
+@csrf_exempt            
+def trn_type_dtl_table(request):
+    if request.method == 'POST':
+        try:
+            with open(r"E:\stock_ledger_webs\Stock_ledger\stock_ledger_web_services\trn_type.json", 'r') as openfile:
+                json_object_val = json.load(openfile)
+            if len(json_object_val)==0:
+                return JsonResponse({"status": 500, "message": "NO DATA FOUND"})
+            else:
+                return JsonResponse(json_object_val, content_type="application/json",safe=False)
+        except ValueError:
+            return JsonResponse({"status": 500, "message": "error"})
